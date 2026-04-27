@@ -29,12 +29,12 @@ The plugin relies on a "Yes only" Data Element to track the scheduling state.
 4. Choose **Form Field Plugins** and click on "Add Configuration". Select your program and program stage where you want to have the scheduler.
 5. Select **Add Element** and find the scheduler plugin on the list.
 
-![Alt text](screenshots/add-plugin.png)
+<img src="screenshots/add-plugin.png" alt="Add Plugin" width="400">
 
 4. Place the scheduling plugin in your desired position on the form.
 5. In the Attributes/Data Elements mapping section for the plugin, map your Data Element to the exact alias: `schedulingDone`.
 
-![Alt text](screenshots/plugin-settings.png)
+<img src="screenshots/plugin-settings.png" alt="Plugin Settings Mapping" width="350">
 
 ### 3. Configure the Program Rules
 To strictly enforce scheduling before form completion, you must configure a Program Rule that reads the plugin's Data Element.
@@ -76,7 +76,7 @@ If the health worker needs to adjust the predefined date (e.g., the default date
 ### 3. Error on Premature Completion
 If the user ignores the plugin and attempts to click the native DHIS2 "Complete" button before scheduling the next visit, the Program Rule will trigger, blocking the save and displaying an error message.
 
-![Alt text](screenshots/program-rule-error-on-complete.png)
+<img src="screenshots/program-rule-error-on-complete.png" alt="Program Rule Error" width="500">
 
 ### 4. Successful Scheduling
 Once the user verifies the date and clicks **Save scheduled visit**, the plugin communicates with the DHIS2 server to create the future event. 
