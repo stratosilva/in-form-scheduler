@@ -4,7 +4,6 @@
             "name": "HTN - Scheduling done",
             "created": "2026-04-27T09:22:32.648",
             "lastUpdated": "2026-04-27T09:22:32.648",
-            "translations": [],
             "sharing": {
                 "owner": "M5zQapPyTZI",
                 "external": false,
@@ -14,14 +13,11 @@
             },
             "shortName": "Scheduling done",
             "formName": "Scheduling done?",
-            "legendSets": [],
             "aggregationType": "AVERAGE",
             "valueType": "TRUE_ONLY",
             "domainType": "TRACKER",
-            "aggregationLevels": [],
             "zeroIsSignificant": false,
             "id": "Mj9jx9JLmyl",
-            "attributeValues": [],
             "categoryCombo": {
                 "id": "bjDvmb4bfuf"
             }
@@ -32,7 +28,6 @@
             "name": "schedulingDone",
             "created": "2026-04-27T12:48:41.307",
             "lastUpdated": "2026-04-27T12:48:41.307",
-            "translations": [],
             "program": {
                 "id": "pMIglSEqPGS"
             },
@@ -50,7 +45,6 @@
             "name": "SHOWERROR if visit not scheduled",
             "created": "2026-04-27T12:48:14.073",
             "lastUpdated": "2026-04-27T12:55:20.736",
-            "translations": [],
             "program": {
                 "id": "pMIglSEqPGS"
             },
@@ -65,19 +59,84 @@
             "condition": "!d2:hasValue(#{schedulingDone}) || #{schedulingDone} != true",
             "priority": 1,
             "id": "nQwR59NXQT9"
+        },
+        {
+            "name": "LOCK Scheduling Checkbox",
+            "created": "2026-05-13T13:48:11.333",
+            "lastUpdated": "2026-05-13T14:06:19.994",
+            "program": {
+                "id": "pMIglSEqPGS"
+            },
+            "programStage": {
+                "id": "anb2cjLx3WM"
+            },
+            "programRuleActions": [
+                {
+                    "id": "n5fTGn18j8a"
+                }
+            ],
+            "condition": "!d2:hasValue(#{schedulingDone})",
+            "priority": 1,
+            "id": "Lj7Gk1JBFtZ"
+        },
+        {
+            "name": "LOCK Scheduling Checkbox when true",
+            "created": "2026-05-13T14:15:44.415",
+            "lastUpdated": "2026-05-13T14:15:44.415",
+            "program": {
+                "id": "pMIglSEqPGS"
+            },
+            "programStage": {
+                "id": "anb2cjLx3WM"
+            },
+            "programRuleActions": [
+                {
+                    "id": "KV29LuEwoch"
+                }
+            ],
+            "condition": "d2:hasValue(#{schedulingDone}) && #{schedulingDone} == true",
+            "priority": 1,
+            "id": "APmP5Vi8oQV"
         }
     ],
     "programRuleActions": [
         {
             "created": "2026-04-23T10:35:26.436",
             "lastUpdated": "2026-04-27T12:55:20.728",
-            "translations": [],
             "programRule": {
                 "id": "nQwR59NXQT9"
             },
             "programRuleActionType": "ERRORONCOMPLETE",
             "content": "Please schedule the next visit before saving",
             "id": "UCnc6BPocPp"
+        },
+        {
+            "created": "2026-05-13T13:58:20.496",
+            "lastUpdated": "2026-05-13T14:06:19.987",
+            "programRule": {
+                "id": "Lj7Gk1JBFtZ"
+            },
+            "programRuleActionType": "ASSIGN",
+            "dataElement": {
+                "id": "Mj9jx9JLmyl"
+            },
+            "content": "#{schedulingDone}",
+            "data": "''",
+            "id": "n5fTGn18j8a"
+        },
+        {
+            "created": "2026-05-13T13:58:20.496",
+            "lastUpdated": "2026-05-13T14:15:44.407",
+            "programRule": {
+                "id": "APmP5Vi8oQV"
+            },
+            "programRuleActionType": "ASSIGN",
+            "dataElement": {
+                "id": "Mj9jx9JLmyl"
+            },
+            "content": "#{schedulingDone}",
+            "data": "true",
+            "id": "KV29LuEwoch"
         }
     ]
 }
