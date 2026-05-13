@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useDataMutation, useDataEngine } from '@dhis2/app-runtime'
 import { InputField, Button, ButtonStrip, NoticeBox, CircularLoader } from '@dhis2/ui'
 
-// Ensure this matches the alias in your screenshot exactly
+// Ensure this matches the alias in your Tracker Configurator exactly
 const DE_SCHEDULING_DONE = 'schedulingDone';
 
 interface ScheduleNextVisitPluginProps {
@@ -41,11 +41,8 @@ const ScheduleNextVisitPlugin: React.FC<ScheduleNextVisitPluginProps> = ({
     const [loadingContext, setLoadingContext] = useState<boolean>(true)
     const [statusMessage, setStatusMessage] = useState<StatusMessage | null>(null)
     const [context, setContext] = useState<Record<string, string | null>>({})
-    
-    const engine = useDataEngine()
 
-    // Read the string 'true' exactly as the DHIS2 payload expects
-    const isSchedulingDone = values[DE_SCHEDULING_DONE] === 'true';
+    const engine = useDataEngine()
 
     useEffect(() => {
         const fetchContext = async () => {
@@ -53,7 +50,7 @@ const ScheduleNextVisitPlugin: React.FC<ScheduleNextVisitPluginProps> = ({
             try {
                 hash = window.parent.location.hash || window.top?.location.hash || '';
             } catch (error) {
-                console.warn('Cross-origin block in Dev Mode');
+                console.warn('Cross-origin block in Dev Mode. Parent URL inaccessible.');
             }
 
             const params = new URLSearchParams(hash.split('?')[1] || '');
@@ -66,7 +63,8 @@ const ScheduleNextVisitPlugin: React.FC<ScheduleNextVisitPluginProps> = ({
             const eventId = params.get('eventId');
 
             if (urlP && urlPs && urlTei && urlEnroll) {
-                setContext({ p: urlP, ps: urlPs, ou: urlOu, tei: urlTei, enroll: urlEnroll });
+                // If brand new event, default status to ACTIVE
+                setContext({ p: urlP, ps: urlPs, ou: urlOu, tei: urlTei, enroll: urlEnroll, status: 'ACTIVE' });
                 setLoadingContext(false);
                 return;
             }
@@ -83,12 +81,14 @@ const ScheduleNextVisitPlugin: React.FC<ScheduleNextVisitPluginProps> = ({
                         ou: urlOu || eventData.orgUnit,
                         tei: eventData.trackedEntity,
                         enroll: eventData.enrollment,
+                        status: eventData.status, // We capture the event status here!
                     });
                 } catch (error) {
+                    console.error("Failed to fetch event context:", error);
                     setStatusMessage({ type: 'error', text: 'Failed to retrieve event details.' });
                 }
             } else {
-                setContext({ p: urlP, ps: urlPs, ou: urlOu, tei: urlTei, enroll: urlEnroll });
+                setContext({ p: urlP, ps: urlPs, ou: urlOu, tei: urlTei, enroll: urlEnroll, status: 'ACTIVE' });
             }
             
             setLoadingContext(false);
@@ -97,18 +97,27 @@ const ScheduleNextVisitPlugin: React.FC<ScheduleNextVisitPluginProps> = ({
         fetchContext();
     }, [orgUnitId, engine]);
 
+    // 1. Check if the native DHIS2 form DE is ticked (for active forms)
+    const isSchedulingDone = values[DE_SCHEDULING_DONE] === 'true' || values[DE_SCHEDULING_DONE] === true;
+    
+    // 2. Check if the event is already completed (for historical edits)
+    const isEventCompleted = context.status === 'COMPLETED';
+    
+    // 3. Disable the button if either condition is true
+    const isDisabled = isSchedulingDone || isEventCompleted;
+
     const [createEvent] = useDataMutation(createScheduledEvent, {
         onComplete: () => {
             setSaving(false)
             
-            // Push the string 'true' back to the form, exactly mirroring the insulin plugin
+            // Push the string 'true' back to the form so the Program Rule is satisfied
             if (setFieldValue && typeof setFieldValue === 'function') {
                 setFieldValue({ fieldId: DE_SCHEDULING_DONE, value: 'true' });
             }
 
             setStatusMessage({
                 type: 'success',
-                text: 'Visit scheduled successfully! Please complete the form to finalize the visit',
+                text: 'Visit scheduled successfully! Please complete the form to finalize the visit.',
             })
         },
         onError: (error: Error) => {
@@ -145,17 +154,39 @@ const ScheduleNextVisitPlugin: React.FC<ScheduleNextVisitPluginProps> = ({
         })
     }
 
-    if (loadingContext) return <CircularLoader small />
+    if (loadingContext) {
+        return (
+            <div style={{ marginTop: -8, padding: '16px', border: '1px solid #dfe1e6', borderRadius: 4, textAlign: 'center' }}>
+                <CircularLoader small />
+                <p style={{ margin: '8px 0 0 0', fontSize: '12px', color: '#4a5768' }}>Loading scheduling context...</p>
+            </div>
+        )
+    }
 
     return (
         <div style={{ marginTop: -8, padding: '8px 12px', border: '1px solid #dfe1e6', borderRadius: 4 }}>
-            <style>{`.full-click-date input[type="date"] { position: relative; cursor: pointer; } .full-click-date input[type="date"]::-webkit-calendar-picker-indicator { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }`}</style>
+            <style>{`
+                .full-click-date input[type="date"] {
+                    position: relative;
+                    cursor: pointer;
+                }
+                .full-click-date input[type="date"]::-webkit-calendar-picker-indicator {
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    opacity: 0;
+                    cursor: pointer;
+                }
+            `}</style>
 
-            {/* Added (v2) here so you can prove your browser loaded the new code! */}
             <NoticeBox title="Schedule next visit" small style={{ marginBottom: 8, padding: '8px 12px' }}>
-                {isSchedulingDone 
-                    ? "A future visit has already been scheduled from this event."
-                    : `Verify the next visit date (defaulting to ${daysAhead} days from today), then click 'Save'.`}
+                {isEventCompleted 
+                    ? "This visit is already completed. No further scheduling is required." 
+                    : (isSchedulingDone 
+                        ? "A future visit has already been scheduled from this event."
+                        : `Verify the next visit date (defaulting to ${daysAhead} days from today), then click 'Save'.`)}
             </NoticeBox>
 
             <div className="full-click-date" style={{ marginBottom: 8, marginTop: 4 }}>
@@ -167,18 +198,23 @@ const ScheduleNextVisitPlugin: React.FC<ScheduleNextVisitPluginProps> = ({
                     onChange={({ value }: { value: string }) => setDueDate(value)}
                     min={getDefaultDueDate(1)}
                     max={getDefaultDueDate(365)}
-                    disabled={isSchedulingDone} 
+                    disabled={isDisabled} 
                 />
             </div>
 
             <ButtonStrip style={{ marginTop: 8 }}>
-                <Button primary onClick={handleSchedule} disabled={saving || isSchedulingDone} small>
-                    {saving ? <CircularLoader small /> : (isSchedulingDone ? 'Visit already scheduled' : 'Save scheduled visit')}
+                <Button primary onClick={handleSchedule} disabled={saving || isDisabled} small>
+                    {saving ? <CircularLoader small /> : (isDisabled ? 'Visit already scheduled' : 'Save scheduled visit')}
                 </Button>
             </ButtonStrip>
 
             {statusMessage && (
-                <NoticeBox error={statusMessage.type === 'error'} valid={statusMessage.type === 'success'} small style={{ marginTop: 12, padding: '8px 12px' }}>
+                <NoticeBox
+                    error={statusMessage.type === 'error'}
+                    valid={statusMessage.type === 'success'}
+                    small
+                    style={{ marginTop: 12, padding: '8px 12px' }}
+                >
                     {statusMessage.text}
                 </NoticeBox>
             )}
